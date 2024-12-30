@@ -1,182 +1,133 @@
-import { useState, useEffect } from "react";
-
-// Initial items for packing list
-const initialItems = [
-  { id: 1, description: "Passports", quantity: 2, packed: false },
-  { id: 2, description: "Socks", quantity: 12, packed: false },
-  { id: 3, description: "Shoes", quantity: 1, packed: true },
-];
-
-// Main App component
+import { useState } from "react";
 export default function App() {
-  const [newArr, setNewArr] = useState([]);
-  const [packedStatus, setPackedStatus] = useState(false);
-  function onDeleteItem(idToDelete) {
-    setNewArr(function (newarr) {
-      return newarr.filter(function (item) {
-        return item.id !== idToDelete;
-      });
-    });
+  const [items, setItems] = useState([]);
+
+  function handleAddItems(item) {
+    setItems((items) => [...items, item]);
   }
-  const handleAddItem = function (item) {
-    setNewArr(function (newArr) {
-      return [...newArr, item];
-    });
-  };
+
+  function handleDeleteItems(id) {
+    setItems((items) => items.filter((item) => item.id !== id));
+  }
+
+  function handleCheckItems(id) {
+    setItems((items) =>
+      items.map((item) =>
+        item.id === id ? { ...item, packed: !item.packed } : item
+      )
+    );
+  }
+
   return (
     <div className="app">
       <Logo />
-      <Form onAddItems={handleAddItem} packedStatus={packedStatus} />
+      <Form onAddItems={handleAddItems} />
       <PackingList
-        itemsEntered={newArr}
-        ondeleteitems={onDeleteItem}
-        packedStatus={packedStatus}
-        setPackedStatus={setPackedStatus}
+        items={items}
+        onDeleteItems={handleDeleteItems}
+        onCheckItem={handleCheckItems}
       />
-      <Stats totalItems={newArr} />
+      <Stat items={items} /> {/* Pass items as a prop */}
     </div>
   );
 }
 
-// Logo component
 function Logo() {
-  return <h1>Pack Track 🧳</h1>;
+  return <h1>🌴Far Away💼</h1>;
 }
 
-// Form component for adding items to the packing list
-function Form({ onAddItems, packedStatus }) {
+function Form({ onAddItems }) {
   const [description, setDescription] = useState("");
-  const [quantityOfItem, setQuantityOfItem] = useState("1");
+  const [quantity, setQuantity] = useState(1);
 
-  function handleClick(e) {
+  function handleSubmit(e) {
     e.preventDefault();
-    const newObj = {
+    if (!description) return;
+
+    const newItem = {
       description,
-      quantityOfItem,
+      quantity,
+      packed: false,
       id: Date.now(),
-      packed: packedStatus,
     };
-    onAddItems(newObj);
+
+    onAddItems(newItem);
     setDescription("");
-    setQuantityOfItem("1");
-    /* setPackedStatus(true); */
+    setQuantity(1);
   }
 
-  const handleChange = function (e) {
-    e.preventDefault();
-    setDescription(e.target.value);
-  };
-
-  const handleChangeDescription = function (e) {
-    setQuantityOfItem(e.target.value);
-  };
   return (
-    <form className="add-form" style={{ border: "2px solid red" }}>
+    <form className="add-form" onSubmit={handleSubmit}>
       <h3>What do you need for your trip?</h3>
-      <select value={quantityOfItem} onChange={handleChangeDescription}>
-        {/* <option value="1">1</option>
-        <option value="2">2</option>
-        <option value="3">3</option> */}
-        {Array.from({ length: 20 }, (el, i) => i + 1).map(function (
-          numberOfItems
-        ) {
-          return (
-            <option key={numberOfItems} value={numberOfItems}>
-              {numberOfItems}
-            </option>
-          );
-        })}
+      <select value={quantity} onChange={(e) => setQuantity(+e.target.value)}>
+        {Array.from({ length: 20 }, (_, i) => i + 1).map((num) => (
+          <option value={num} key={num}>
+            {num}
+          </option>
+        ))}
       </select>
-
       <input
-        type="text"
-        placeholder="Item.."
-        onChange={handleChange}
+        placeholder="item..."
         value={description}
+        onChange={(e) => setDescription(e.target.value)}
       />
-      <button onClick={handleClick} value={description}>
-        Add
-      </button>
+      <button>Add</button>
     </form>
   );
 }
 
-// Packing list component to display added items
-function PackingList({
-  itemsEntered,
-  ondeleteitems,
-  packedStatus,
-  setPackedStatus,
-}) {
+function PackingList({ items, onDeleteItems, onCheckItem }) {
   return (
     <div className="list">
       <ul>
-        {itemsEntered.map(function (item) {
-          // console.log(item);
-          return (
-            <Item
-              descriptions={item.description}
-              quantitys={item.quantityOfItem}
-              key={item.id}
-              id={item.id}
-              ondeleteitems={ondeleteitems}
-              packedStatus={packedStatus}
-              setPackedStatus={setPackedStatus}
-            />
-          );
-        })}
+        {items.map((item) => (
+          <Item
+            item={item}
+            key={item.id}
+            onDeleteItems={onDeleteItems}
+            onCheckItem={onCheckItem}
+          />
+        ))}
       </ul>
     </div>
   );
 }
-const Item = function ({
-  id,
-  descriptions,
-  quantitys,
-  ondeleteitems,
-  packedStatus,
-  setPackedStatus,
-}) {
-  const [lineThrough, setLineThrough] = useState(false);
-  // console.log("id ==>", id);
-  const handleClick = function () {
-    setLineThrough(!lineThrough);
-    setPackedStatus(!packedStatus);
-    console.log(packedStatus);
-  };
-  const handleDeleteItem = function () {
-    ondeleteitems(id);
-  };
-  return (
-    <li>
-      <input type="checkbox" onClick={handleClick}></input>
-      <span className={packedStatus ? "line-through" : ""}>
-        {quantitys}
-        {descriptions}
-      </span>
-      <button onClick={handleDeleteItem}>❌</button>
-    </li>
-  );
-};
 
-// Stats component to show packing statistics
-function Stats({ totalItems }) {
-  const totalNumberOfItems = totalItems.length;
-  const numberOfPackedItem = totalItems.filter((currentitem) => {
-    console.log(currentitem);
-    return currentitem.packed;
-  }).length;
-  const percentagePacked = totalItems
-    ? Math.round((numberOfPackedItem / totalItems) * 100)
-    : 0;
+function Stat({ items }) {
+  if (!items.length)
+    return (
+      <p className="stats">
+        <em>Start adding some items to your packing list 🚀</em>
+      </p>
+    );
+
+  const numItems = items.length;
+  const numPacked = items.filter((item) => item.packed).length;
+  const percentage = Math.round((numPacked / numItems) * 100);
+
   return (
     <footer className="stats">
       <em>
-        You have {totalNumberOfItems} items on your list, and you already packed
-        {numberOfPackedItem} {`${percentagePacked}%`}
+        {percentage === 100
+          ? "You got everything! Ready to go ✈️"
+          : ` 💼 You have ${numItems} items on your list, and you already packed ${numPacked} (${percentage}%)`}
       </em>
     </footer>
   );
 }
-// NOTES
-//- Derived state refers to a situation where the state of a component is calculated or derived from other existing state or props.
+
+function Item({ item, onDeleteItems, onCheckItem }) {
+  return (
+    <li>
+      <input
+        type="checkbox"
+        checked={item.packed}
+        onChange={() => onCheckItem(item.id)}
+      />
+      <span style={item.packed ? { textDecoration: "line-through" } : {}}>
+        {item.quantity} {item.description}
+      </span>
+      <button onClick={() => onDeleteItems(item.id)}>❎</button>
+    </li>
+  );
+}
